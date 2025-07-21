@@ -249,6 +249,17 @@ require("lazy").setup({
 						})
 					end
 
+					vim.api.nvim_create_autocmd("BufWritePre", {
+						pattern = "*.go",
+						callback = function()
+							vim.lsp.buf.code_action({
+								---@diagnostic disable-next-line: missing-fields
+								context = { only = { "source.organizeImports" } },
+								apply = true,
+							})
+						end,
+					})
+
 					if
 						client
 						and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf)
