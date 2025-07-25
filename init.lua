@@ -249,16 +249,16 @@ require("lazy").setup({
 						})
 					end
 
-					vim.api.nvim_create_autocmd("BufWritePre", {
-						pattern = "*.go",
-						callback = function()
-							vim.lsp.buf.code_action({
-								---@diagnostic disable-next-line: missing-fields
-								context = { only = { "source.organizeImports" } },
-								apply = true,
-							})
-						end,
-					})
+					-- vim.api.nvim_create_autocmd("BufWritePre", {
+					-- 	pattern = "*.go",
+					-- 	callback = function()
+					-- 		vim.lsp.buf.code_action({
+					-- 			---@diagnostic disable-next-line: missing-fields
+					-- 			context = { only = { "source.organizeImports" } },
+					-- 			apply = true,
+					-- 		})
+					-- 	end,
+					-- })
 
 					if
 						client
