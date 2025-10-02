@@ -25,6 +25,16 @@ vim.o.cursorline = true
 vim.o.scrolloff = 10
 vim.o.confirm = true
 
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "html", "htm", "yaml", "json", "lua" },
+	callback = function()
+		vim.opt_local.tabstop = 2
+		vim.opt_local.softtabstop = 2
+		vim.opt_local.shiftwidth = 2
+		vim.opt_local.expandtab = true
+	end,
+})
+
 -- [[ Basic Keymaps ]]
 --
 -- Clear highlights on search when pressing <Esc> in normal mode
@@ -179,6 +189,13 @@ require("lazy").setup({
 	{
 		-- Main LSP Configuration
 		"neovim/nvim-lspconfig",
+		opts = {
+			servers = {
+				pyright = {
+					mason = false,
+				},
+			},
+		},
 		dependencies = {
 			{ "mason-org/mason.nvim", opts = {} },
 			"mason-org/mason-lspconfig.nvim",
@@ -247,18 +264,31 @@ require("lazy").setup({
 								vim.api.nvim_clear_autocmds({ group = "kickstart-lsp-highlight", buffer = event2.buf })
 							end,
 						})
-					end
 
-					-- vim.api.nvim_create_autocmd("BufWritePre", {
-					-- 	pattern = "*.go",
-					-- 	callback = function()
-					-- 		vim.lsp.buf.code_action({
-					-- 			---@diagnostic disable-next-line: missing-fields
-					-- 			context = { only = { "source.organizeImports" } },
-					-- 			apply = true,
-					-- 		})
-					-- 	end,
-					-- })
+						vim.api.nvim_create_autocmd("BufWritePre", {
+							pattern = "*.go",
+							callback = function()
+								vim.lsp.buf.format()
+								local params = vim.lsp.util.make_range_params()
+								params.context = { only = { "source.organizeImports" } }
+								local result = vim.lsp.buf_request_sync(0, "textDocument/codeAction", params, 1000)
+								for _, res in pairs(result or {}) do
+									for _, r in pairs(res.result or {}) do
+										if r.edit then
+											vim.lsp.util.apply_workspace_edit(r.edit, "utf-8")
+										elseif r.command then
+											vim.lsp.buf_request(
+												0,
+												"workspace/executeCommand",
+												r.command,
+												function() end
+											)
+										end
+									end
+								end
+							end,
+						})
+					end
 
 					if
 						client
@@ -310,18 +340,6 @@ require("lazy").setup({
 						},
 					},
 				},
-				pyright = {
-					settings = {
-						pyright = {
-							disableOrganizeImports = true,
-						},
-						python = {
-							analysis = {
-								ignore = { "*" },
-							},
-						},
-					},
-				},
 				ruff = {},
 			}
 
@@ -329,6 +347,7 @@ require("lazy").setup({
 			vim.list_extend(ensure_installed, {
 				"stylua",
 				"markdownlint",
+				"prettier",
 				"golangci-lint",
 				"sqlfluff",
 			})
