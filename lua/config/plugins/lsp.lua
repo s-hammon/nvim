@@ -23,7 +23,18 @@ return {
         capabilities = require("cmp_nvim_lsp").default_capabilities()
       end
 
-      local lspconfig = require("lspconfig")
+      local function get_pyenv_venv()
+        local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+        local home = vim.fn.expand("$HOME")
+        local venv_path = string.format("%s/.pyenv/versions/%s", home, project_name)
+        local python_bin = venv_path .. "/bin/python"
+
+        if vim.fn.executable(python_bin) == 1 then
+          return python_bin
+        end
+
+        return nil
+      end
 
       local servers = {
         bashls = true,
@@ -48,6 +59,20 @@ return {
           cmd = { "lua-language-server" },
         },
         ruff = { manual_install = true },
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              disableOrganizeImports = true,
+              analysis = {
+                ignore = { "*" },
+                typeCheckingMode = "off",
+              },
+              -- python = {
+              --   pythonPath = get_pyenv_venv() or vim.fn.exepath("python3"),
+              -- },
+            },
+          },
+        },
         jsonls = {
           server_capabilities = {
             documentFormattingProvider = false,
@@ -146,40 +171,6 @@ return {
           end
 
           require("config.autoformat").setup()
-
-          -- if client.supports_method("textDocument/formatting", 0) then
-          --   vim.api.nvim_create_autocmd("BufWritePre", {
-          --     buffer = event.buf,
-          --     callback = function()
-          --       vim.lsp.buf.format({ bufnr = event.buf, id = client.id })
-          --       local params = vim.lsp.util.make_range_params()
-          --       params.context = { only = { "source.organizeImports" } }
-          --     end,
-          --   })
-          --
-          --   vim.api.nvim_create_autocmd("BufWritePre", {
-          --     pattern = "*.go",
-          --     callback = function()
-          --       if client.supports_method("textDocument/codeAction", 0) then
-          --         local result = vim.lsp.buf_request_sync(0, "textDocument/codeAction", params, 1000)
-          --         for _, res in pairs(result or {}) do
-          --           for _, r in pairs(res.result or {}) do
-          --             if r.edit then
-          --               vim.lsp.util.apply_workspace_edit(r.edit, "utf-8")
-          --             elseif r.command then
-          --               vim.lsp.buf_request(
-          --                 0,
-          --                 "workspace/executeCommand",
-          --                 r.command,
-          --                 function() end
-          --               )
-          --             end
-          --           end
-          --         end
-          --       end
-          --     end
-          --   })
-          -- end
         end,
       })
 
