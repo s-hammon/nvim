@@ -67,9 +67,6 @@ return {
                 ignore = { "*" },
                 typeCheckingMode = "off",
               },
-              -- python = {
-              --   pythonPath = get_pyenv_venv() or vim.fn.exepath("python3"),
-              -- },
             },
           },
         },
