@@ -30,6 +30,7 @@ M.setup = function()
       "xml",
       "yaml",
     },
+    auto_install = true,
   })
 
   vim.api.nvim_create_autocmd("FileType", {

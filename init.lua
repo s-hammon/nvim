@@ -11,8 +11,12 @@ vim.o.updatetime = 250
 vim.o.splitright = true
 vim.o.splitbelow = true
 vim.o.list = true
+vim.o.undofile = true
 
 vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
+
+vim.o.inccommand = "split"
+vim.o.scrolloff = 10
 
 -- NOTE: if this doesn't work for some reason, get the bootstrap
 -- from lazy.nvim; I'm guessing it won't because of vim.uv
@@ -37,7 +41,7 @@ require("lazy").setup({ import = "config/plugins" }, {
 -- Clear highlights on search when pressing <Esc> in normal mode
 vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 -- Return to normal mode from terminal mode
-vim.keymap.set("t", ",,", "<c-\\><c-n>")
+vim.keymap.set("t", "<Esc><Esc>", "<c-\\><c-n>")
 
 vim.keymap.set("n", "<C-h>", "<C-w><C-h>", { desc = "Move focus to the left window" })
 vim.keymap.set("n", "<C-l>", "<C-w><C-l>", { desc = "Move focus to the right window" })
