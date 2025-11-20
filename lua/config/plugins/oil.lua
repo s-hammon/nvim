@@ -19,7 +19,7 @@ return {
           ["<C-l>"] = false,
           ["<C-k>"] = false,
           ["<C-j>"] = false,
-          ["<M-h>"] = "actions.select_split",
+          ["<A-h>"] = "actions.select_vsplit",
           ["<S-h>"] = "actions.toggle_hidden",
         },
         win_options = {
