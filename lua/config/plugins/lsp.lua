@@ -2,6 +2,8 @@ return {
   {
     "neovim/nvim-lspconfig",
     dependencies = {
+      { "mason-org/mason.nvim", config = true },
+      "mason-org/mason-lspconfig.nvim",
       {
         "folke/lazydev.nvim",
         ft = "lua", -- only load on lua files
@@ -12,33 +14,79 @@ return {
         },
       },
       "b0o/SchemaStore.nvim",
-      "stevearc/conform.nvim",
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      "WhoIsSethDaniel/mason-tool-installer.nvim",
-      { "j-hui/fidget.nvim", opts = {} },
+      {
+        "j-hui/fidget.nvim",
+        opts = {
+          notification = {
+            window = {
+              winblend = 0,
+            },
+          },
+        },
+      },
     },
     config = function()
-      local capabilities = nil
-      if pcall(require, "cmp_nvim_lsp") then
-        capabilities = require("cmp_nvim_lsp").default_capabilities()
-      end
+      vim.api.nvim_create_autocmd("LspAttach", {
+        group = vim.api.nvim_create_augroup("lsp-attach", { clear = true }),
+        callback = function(event)
+          local map = function(keys, func, desc, mode)
+            mode = mode or "n"
+            vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
+          end
 
-      local function get_pyenv_venv()
-        local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
-        local home = vim.fn.expand("$HOME")
-        local venv_path = string.format("%s/.pyenv/versions/%s", home, project_name)
-        local python_bin = venv_path .. "/bin/python"
+          local builtin = require("telescope.builtin")
+          vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
 
-        if vim.fn.executable(python_bin) == 1 then
-          return python_bin
-        end
+          -- Rename variable
+          map("grn", vim.lsp.buf.rename, "[R]ename")
+          -- Execute code action
+          map("gra", vim.lsp.buf.code_action, "[G]oto Code [A]ction", { "n", "x" })
+          -- Find references
+          map("grr", builtin.lsp_references, "[G]oto [R]eferences")
+          -- Jump to implementation
+          map("gri", builtin.lsp_implementations, "[G]oto [I]mplementation")
+          -- Jump to definition
+          map("grd", builtin.lsp_definitions, "[G]oto [D]efinition")
+          -- Jump to type
+          map("grt", builtin.lsp_type_definitions, "[G]oto [T]ype Definition")
 
-        return nil
-      end
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
+          if client and client:supports_method("textDocument/documentHighlight") then
+            local hl = vim.api.nvim_create_augroup("lsp-highlight", { clear = false })
+            vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+              buffer = event.buf,
+              group = hl,
+              callback = vim.lsp.buf.document_highlight,
+            })
+
+            vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+              buffer = event.buf,
+              group = hl,
+              callback = vim.lsp.buf.clear_references,
+            })
+
+            vim.api.nvim_create_autocmd("LspDetach", {
+              buffer = event.buf,
+              callback = function()
+                vim.lsp.buf.clear_references()
+                vim.api.nvim_clear_autocmds({ group = hl, buffer = event.buf })
+              end,
+            })
+          end
+
+          if client and client:supports_method("textDocument/inlayHint") then
+            map("<leader>th", function()
+              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = event.buf }))
+            end, "[T]oggle Inlay [H]ints")
+          end
+        end,
+      })
+
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities = vim.tbl_deep_extend("force", capabilities, require("blink.cmp").get_lsp_capabilities())
 
       local servers = {
-        bashls = true,
+        bashls = {},
         gopls = {
           manual_install = true,
           settings = {
@@ -57,20 +105,40 @@ return {
           },
         },
         lua_ls = {
-          cmd = { "lua-language-server" },
-        },
-        ruff = { manual_install = true },
-        basedpyright = {
           settings = {
-            basedpyright = {
-              disableOrganizeImports = true,
-              analysis = {
-                ignore = { "*" },
-                typeCheckingMode = "off",
+            Lua = {
+              completion = { callSnippet = "Replace" },
+              runtime = { version = "LuaJIT" },
+              workspace = {
+                checkThirdParty = false,
+                library = vim.api.nvim_get_runtime_file("", true),
+              },
+              diagnostics = {
+                globals = { "vim" },
+                disable = { "missing-fields" },
+              },
+              format = { enable = false },
+            },
+          },
+        },
+        pylsp = {
+          settings = {
+            pylsp = {
+              plugins = {
+                pyflakes = { enabled = false },
+                pycodestyle = { enabled = false },
+                autopep8 = { enabled = false },
+                yapf = { enabled = false },
+                mccabe = { enabled = false },
+                pylsp_mypy = { enabled = false },
+                pylsp_black = { enabled = false },
+                pylsp_isort = { enabled = false },
+                pylint = { enabled = false },
               },
             },
           },
         },
+        ruff = {},
         jsonls = {
           server_capabilities = {
             documentFormattingProvider = false,
@@ -85,91 +153,26 @@ return {
         yamlls = {
           settings = {
             yaml = {
-              schemaStore = {
-                enable = false,
-                url = "",
-              },
+              schemaStore = { enable = false, url = "" },
             },
           },
         },
+        html = { filetypes = { "html" } },
+        dockerls = {},
       }
 
-      local servers_to_install = vim.tbl_filter(function(key)
-        local t = servers[key]
-        if type(t) == "table" then
-          return not t.manual_install
-        else
-          return t
-        end
-      end, vim.tbl_keys(servers))
+      local mason_lspconfig = require("mason-lspconfig")
 
-      require("mason").setup()
-      local ensure_installed = {
-        "stylua",
-        "lua_ls",
-        "delve",
-        "gopls",
-      }
-
-      vim.list_extend(ensure_installed, servers_to_install)
-      require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
-
-      for name, config in pairs(servers) do
-        if config == true then
-          config = {}
-        end
-        config = vim.tbl_deep_extend("force", {}, {
-          capabilities = capabilities,
-        }, config)
-
-        vim.lsp.config(name, config)
-        vim.lsp.enable(name)
-      end
-
-      vim.api.nvim_create_autocmd("LspAttach", {
-        callback = function(event)
-          local client = assert(vim.lsp.get_client_by_id(event.data.client_id), "must have valid client")
-
-          local settings = servers[client.name]
-          if type(settings) ~= "table" then
-            settings = {}
-          end
-
-          local builtin = require("telescope.builtin")
-
-          vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
-
-          local map = function(keys, func, desc, mode)
-            mode = mode or "n"
-            vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
-          end
-
-          -- Rename variable
-          map("grn", vim.lsp.buf.rename, "[R]ename")
-          -- Execute code action
-          map("gra", vim.lsp.buf.code_action, "[G]oto Code [A]ction", { "n", "x" })
-          -- Find references
-          map("grr", builtin.lsp_references, "[G]oto [R]eferences")
-          -- Jump to implementation
-          map("gri", builtin.lsp_implementations, "[G]oto [I]mplementation")
-          -- Jump to definition
-          map("grd", builtin.lsp_definitions, "[G]oto [D]efinition")
-          -- Jump to type
-          map("grt", builtin.lsp_type_definitions, "[G]oto [T]ype Definition")
-
-          if settings.server_capabilities then
-            for k, v in pairs(settings.server_capabilities) do
-              if v == vim.NIL then
-                ---@diagnostic disable-next-line: cast-local-type
-                v = nil
-              end
-
-              client.server_capabilities[k] = v
-            end
-          end
-
-          require("config.autoformat").setup()
-        end,
+      mason_lspconfig.setup({
+        ensure_installed = vim.tbl_keys(servers),
+        automatic_installation = true,
+        handlers = {
+          function(server)
+            local config = servers[server] or {}
+            config.capabilities = vim.tbl_deep_extend("force", {}, capabilities, config.capabilities or {})
+            require("lspconfig")[server].setup(config)
+          end,
+        },
       })
 
       vim.diagnostic.config({
@@ -187,15 +190,6 @@ return {
         virtual_text = {
           source = "if_many",
           spacing = 2,
-          format = function(diagnostic)
-            local diagnostic_message = {
-              [vim.diagnostic.severity.ERROR] = diagnostic.message,
-              [vim.diagnostic.severity.WARN] = diagnostic.message,
-              [vim.diagnostic.severity.INFO] = diagnostic.message,
-              [vim.diagnostic.severity.HINT] = diagnostic.message,
-            }
-            return diagnostic_message[diagnostic.severity]
-          end,
         },
       })
     end,

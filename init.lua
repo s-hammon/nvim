@@ -18,6 +18,8 @@ vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣" }
 vim.o.inccommand = "split"
 vim.o.scrolloff = 10
 
+vim.g.loaded_python3_provider = 0
+
 -- NOTE: if this doesn't work for some reason, get the bootstrap
 -- from lazy.nvim; I'm guessing it won't because of vim.uv
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -36,6 +38,8 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({ import = "config/plugins" }, {
   change_detection = { notify = false },
 })
+
+require("config.autoformat")
 
 -- [[ Keymaps ]]
 -- Clear highlights on search when pressing <Esc> in normal mode

@@ -3,13 +3,15 @@ local M = {}
 M.setup = function()
   local group = vim.api.nvim_create_augroup("custom-treesitter", { clear = true })
 
-  require("nvim-treesitter").setup({
+  require("nvim-treesitter.configs").setup({
     ensure_installed = {
       "bash",
       "c",
+      "cmake",
       "css",
       "diff",
       "dockerfile",
+      "gitignore",
       "go",
       "gomod",
       "gosum",
@@ -19,11 +21,14 @@ M.setup = function()
       "json",
       "lua",
       "luadoc",
+      "make",
       "markdown",
       "markdown_inline",
       "python",
       "query",
+      "regex",
       "sql",
+      "typescript",
       "toml",
       "vim",
       "vimdoc",
@@ -31,53 +36,60 @@ M.setup = function()
       "yaml",
     },
     auto_install = true,
-  })
-
-  vim.api.nvim_create_autocmd("FileType", {
-    group = group,
-    callback = function(event)
-      local bufnr = event.buf
-      local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
-      if not ok or not parser then
-        return
-      end
-      pcall(vim.treesitter.start)
-    end,
-  })
-
-  vim.api.nvim_create_autocmd("User", {
-    group = group,
-    pattern = "TSUpdate",
-    callback = function()
-      local parsers = require("nvim-treesitter.parsers")
-
-      parsers.cram = {
-        tier = 0,
-        install_info = {
-          path = "~/git/tree-sitter-cram",
-          files = { "src/parser.c" },
+    highlight = { enable = true },
+    indent = { enable = true },
+    incremental_selection = {
+      enable = true,
+      keymaps = {
+        init_selection = "<c-space>",
+        node_incremental = "<c-space>",
+        scope_incremental = "<c-s>",
+        node_decremental = "<M-space>",
+      },
+    },
+    textobjects = {
+      select = {
+        enable = true,
+        lookahead = true,
+        keymaps = {
+          ["aa"] = "@parameter.outer",
+          ["ia"] = "@parameter.inner",
+          ["af"] = "@function.outer",
+          ["if"] = "@function.inner",
+          ["ac"] = "@class.outer",
+          ["ic"] = "@class.inner",
         },
-      }
-
-      parsers.reason = {
-        tier = 0,
-        install_info = {
-          url = "https://github.com/reasonml-editor/tree-sitter-reason",
-          files = { "src/parser.c", "src/scanner.c" },
-          branch = "master",
+      },
+      move = {
+        enable = true,
+        set_jumps = true,
+        goto_next_start = {
+          ["]m"] = "@function.outer",
+          ["]]"] = "@class.outer",
         },
-      }
-
-      parsers.blade = {
-        tier = 0,
-        install_info = {
-          url = "https://github.com/EmranMR/tree-sitter-blade",
-          files = { "src/parsers.c" },
-          branch = "main",
+        goto_next_end = {
+          ["]M"] = "@function.outer",
+          ["]["] = "@class.outer",
         },
-        filetype = "blade",
-      }
-    end,
+        goto_previous_start = {
+          ["[m"] = "@function.outer",
+          ["[["] = "@class.outer",
+        },
+        goto_previous_end = {
+          ["[M"] = "@function.outer",
+          ["[]"] = "@class.outer",
+        },
+      },
+      swap = {
+        enable = true,
+        swap_next = {
+          ["<leader>a"] = "@parameter.inner",
+        },
+        swap_previous = {
+          ["<leader>A"] = "@parameter.inner",
+        },
+      },
+    },
   })
 end
 
