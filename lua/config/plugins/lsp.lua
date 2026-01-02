@@ -134,6 +134,8 @@ return {
                 pylsp_black = { enabled = false },
                 pylsp_isort = { enabled = false },
                 pylint = { enabled = false },
+                flake8 = { enabled = false },
+                pydocstyle = { enabled = false },
               },
             },
           },
@@ -159,6 +161,7 @@ return {
         },
         html = { filetypes = { "html" } },
         dockerls = {},
+        clangd = {},
       }
 
       local mason_lspconfig = require("mason-lspconfig")
