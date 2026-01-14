@@ -162,6 +162,7 @@ return {
         html = { filetypes = { "html" } },
         dockerls = {},
         clangd = {},
+        ts_ls = {},
       }
 
       local mason_lspconfig = require("mason-lspconfig")
