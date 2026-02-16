@@ -1,8 +1,6 @@
 local M = {}
 
 M.setup = function()
-  local group = vim.api.nvim_create_augroup("custom-treesitter", { clear = true })
-
   require("nvim-treesitter.configs").setup({
     ensure_installed = {
       "bash",
@@ -89,6 +87,15 @@ M.setup = function()
           ["<leader>A"] = "@parameter.inner",
         },
       },
+    },
+  })
+
+  require("nvim-ts-autotag").setup({
+    opts = {
+      -- Defaults
+      enable_close = true,
+      enable_rename = true,
+      enable_close_on_slash = false,
     },
   })
 end
