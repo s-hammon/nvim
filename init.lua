@@ -39,6 +39,14 @@ require("lazy").setup({ import = "config/plugins" }, {
   change_detection = { notify = false },
 })
 
+vim.filetype.add({
+  extension = {
+    tf = "terraform",
+    tfvars = "terraform-vars",
+    tfstate = "json",
+  },
+})
+
 require("config.autoformat")
 
 -- [[ Keymaps ]]
