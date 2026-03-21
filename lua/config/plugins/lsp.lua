@@ -111,23 +111,6 @@ return {
             },
           },
         },
-        lua_ls = {
-          settings = {
-            Lua = {
-              completion = { callSnippet = "Replace" },
-              runtime = { version = "LuaJIT" },
-              workspace = {
-                checkThirdParty = false,
-                library = vim.api.nvim_get_runtime_file("", true),
-              },
-              diagnostics = {
-                globals = { "vim" },
-                disable = { "missing-fields" },
-              },
-              format = { enable = false },
-            },
-          },
-        },
         pylsp = {
           settings = {
             pylsp = {
@@ -178,18 +161,19 @@ return {
       mason_lspconfig.setup({
         ensure_installed = vim.tbl_keys(servers),
         automatic_installation = true,
-        handlers = {
-          function(server)
-            local config = servers[server] or {}
-            config.capabilities = vim.tbl_deep_extend("force", {}, capabilities, config.capabilities or {})
-            require("lspconfig")[server].setup(config)
-          end,
-        },
+        -- // NOTE: handlers were disabled
+        -- handlers = {
+        --   function(server)
+        --     local config = servers[server] or {}
+        --     config.capabilities = vim.tbl_deep_extend("force", {}, capabilities, config.capabilities or {})
+        --     require("lspconfig")[server].setup(config)
+        --   end,
+        -- },
       })
 
       vim.diagnostic.config({
         severity_sort = true,
-        float = { border = "rounded", soruce = "if_many" },
+        float = { border = "rounded", source = "if_many" },
         underline = { severity = vim.diagnostic.severity.ERROR },
         signs = vim.g.have_nerd_font and {
           text = {
