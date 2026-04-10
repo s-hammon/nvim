@@ -83,3 +83,26 @@ vim.api.nvim_create_autocmd("TermOpen", {
     vim.opt.relativenumber = false
   end,
 })
+
+local function toggle_ibus()
+  local current_engine = vim.fn.system("ibus engine"):gsub("%s+", "")
+
+  if current_engine == "anthy" then
+    vim.fn.system("ibus engine xkb:us::eng")
+    vim.notify("IME: English", vim.log.levels.INFO)
+  else
+    vim.fn.system("ibus engine anthy")
+    vim.notify("IME: Anthy", vim.log.levels.INFO)
+  end
+end
+
+vim.keymap.set("i", "<C-\\>", toggle_ibus, { desc = "Toggle IME (Anthy/English" })
+vim.api.nvim_create_autocmd("InsertLeave", {
+  group = vim.api.nvim_create_augroup("IbusAutoEnglish", { clear = true }),
+  callback = function()
+    local current_engine = vim.fn.system("ibus engine"):gsub("%s+", "")
+    if current_engine ~= "xkb:us::eng" then
+      vim.fn.system("ibus engine xkb:us::eng")
+    end
+  end,
+})

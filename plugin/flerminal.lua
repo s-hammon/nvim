@@ -1,5 +1,9 @@
 local state = {
-  floating = {
+  term = {
+    buf = -1,
+    win = -1,
+  },
+  ai = {
     buf = -1,
     win = -1,
   },
@@ -33,25 +37,67 @@ local function create_floating_window(opts)
   return { buf = buf, win = win }
 end
 
-local toggle_terminal = function()
-  if not vim.api.nvim_win_is_valid(state.floating.win) then
-    state.floating = create_floating_window({ buf = state.floating.buf })
-    if vim.bo[state.floating.buf].buftype ~= "terminal" then
+local toggle_terminal = function(type)
+  type = type or "term"
+  local current_state = state[type]
+  print(current_state)
+
+  if vim.api.nvim_win_is_valid(current_state.win) then
+    vim.api.nvim_win_hide(current_state.win)
+    return
+  end
+
+  for key, term_data in pairs(state) do
+    if key ~= type and vim.api.nvim_win_is_valid(term_data.win) then
+      vim.api.nvim_win_hide(term_data.win)
+    end
+  end
+
+  local win_data = create_floating_window({ buf = current_state.buf })
+
+  state[type].buf = win_data.buf
+  state[type].win = win_data.win
+
+  if vim.bo[state[type].buf].buftype ~= "terminal" then
+    if type == "ai" then
+      vim.cmd.terminal("opencode")
+    else
       vim.cmd.terminal()
     end
+
+    vim.cmd("startinsert")
   else
-    vim.api.nvim_win_hide(state.floating.win)
+    vim.cmd("startinsert")
+  end
+end
+
+local close_current_terminal = function()
+  local current_win = vim.api.nvim_get_current_win()
+
+  for _, term_data in pairs(state) do
+    if term_data.win == current_win then
+      vim.api.nvim_win_hide(term_data.win)
+      return
+    end
   end
 end
 
 vim.api.nvim_create_user_command("Flerminal", toggle_terminal, {})
 
-vim.keymap.set({ "n" }, "<space>tt", toggle_terminal, { desc = "[T]oggle [T]erminal" })
+vim.keymap.set({ "n" }, "<space>tt", function()
+  toggle_terminal("term")
+end, { desc = "[T]oggle [T]erminal" })
+
+vim.keymap.set({ "n" }, "<space>ta", function()
+  toggle_terminal("ai")
+end, { desc = "[T]oggle [A]I Terminal" })
+
+vim.keymap.set({ "n", "t" }, "<C-Esc><C-Esc>", close_current_terminal, { desc = "Close active floating terminal" })
 
 vim.keymap.set("n", "<space>ti", function()
-  if not vim.api.nvim_win_is_valid(state.floating.win) then
-    state.floating = create_floating_window({ buf = state.floating.buf })
-    if vim.bo[state.floating.buf].buftype ~= "terminal" then
+  if not vim.api.nvim_win_is_valid(state.term.win) then
+    state.term = create_floating_window({ buf = state.term.buf })
+    if vim.bo[state.term.buf].buftype ~= "terminal" then
       vim.cmd.terminal()
     end
   end
@@ -69,7 +115,7 @@ vim.keymap.set({ "n" }, "<space>te", input_command_buf, { desc = "[T]erminal [E]
 
 vim.keymap.set({ "n" }, "<space>tr", function()
   input_command_buf()
-  toggle_terminal()
+  toggle_terminal("term")
   local ctrl_t = vim.api.nvim_replace_termcodes("<c-t>", true, true, true)
   local cmd = ctrl_t .. command_buf .. "\r"
   vim.api.nvim_feedkeys("i" .. cmd, "n", false)
