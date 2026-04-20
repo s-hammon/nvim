@@ -16,6 +16,8 @@ return {
         "goimports",
         "prettier",
         "shfmt",
+        "stylua",
+        "clang-format",
       },
       automatic_installation = true,
     })
@@ -26,7 +28,6 @@ return {
         formatting.goimports,
         formatting.prettier.with({ filetypes = { "html", "json", "yaml", "markdown" } }),
         formatting.stylua,
-        formatting.clang_format,
         formatting.shfmt.with({ args = { "-i", "4" } }),
         require("none-ls.formatting.ruff").with({ extra_args = { "--extend-select", "I" } }),
         require("none-ls.formatting.ruff_format"),
